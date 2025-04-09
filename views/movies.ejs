@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <title>Express Movies</title>
+    <link rel="stylesheet" href="../public/styles.css">
+  </head>
+
+  <body>
+    <div class="central">
+      <%- include('partials/header') %>
+  
+      <h1><%- title %></h1>
+      
+      <div>
+        <% for(let movie of movies) { %>
+            <div>
+              <%= movie.title %> - <%= movie.year %>
+            </div>
+        <% } %>
+      </div>
+  
+    </div>
+    <%- include('partials/footer') %>
+  </body>
+</html>

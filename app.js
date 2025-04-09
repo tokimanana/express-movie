@@ -48,6 +48,8 @@ app.post('/movies', upload.fields([]), (req, res) => {
     return res.sendStatus(500);
   } else {
     const formData = req.body;
+    const title = req.body.movietitle ;
+    const year = req.body.movieyear  ;
     console.log(('formData :', formData));
     frenchMovies.push({ title, year });
     res.sendStatus(201);

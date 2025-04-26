@@ -11,9 +11,11 @@
   "author": "saro",
   "license": "ISC",
   "dependencies": {
+    "axios": "^1.9.0",
     "body-parser": "^1.20.3",
     "ejs": "^3.1.10",
     "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.2"
   },
   "devDependencies": {

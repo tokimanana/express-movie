@@ -4,6 +4,8 @@ const bodyParser = require("body-parser");
 const multer = require('multer');
 const upload = multer();
 
+const jwt = require('jsonwebtoken');
+const expressJwt = require('express-jwt');
 
 const PORT = 3000;
 
@@ -17,8 +19,12 @@ let frenchMovies = [
 app.use('/public', express.static('public'));
 // app.use(bodyParser.urlencoded({ extended: false }));
 
+const secret = 'qsdjS12ozehdoIJ123DJOZJLDSCqsdeffdg123ER56SDFZedhWXojqshduzaohduihqsDAqsdq';
+app.use(expressJwt({ secret : secret }).unless({ path: ['/login']}));
+
 app.set("views", "./views");
 app.set("view engine", "ejs");
+
 
 app.get('/movies', (req, res) => {
   // res.send("Bientôt des films ici-même");
@@ -71,9 +77,34 @@ app.get("/", (req, res) => {
   res.render("index");
 });
 
-app.get("/movie-search", (req, res) => {
+app.get('/movie-search', (req, res) => {
   res.render("movie-search");
 });
+
+app.get('/login', (req, res) => {
+  res.render('login', { title : 'Espace membre' })
+})
+
+const fakeUser = {
+  email: 'testuser@testmail.fr',
+  password : '123'
+};
+
+
+app.post('/login', urlencoded, (req, res) => {
+  console.log('login post', req.body);
+  if(!req.body){
+    res.sendStatus(500);
+  } else {
+    if( fakeUser.email === req.body.email && fakeUser.password === req.body.password){
+      const myToken = jwt.sign({iss: 'http://expressmovies.fr', user:'Sam', role: 'moderator'}, secret); 
+      res.json(myToken);
+
+    } else {
+      res.sendStatus(401);
+    }
+  }
+})
 
 app.listen(PORT, () => {
   console.log(`listening on port ${PORT}`);

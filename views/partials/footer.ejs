@@ -1,2 +1,43 @@
 <hr />
-<p>Copyright &copy; 2025 Code</p>
+<p>Copyright &copy; 2025 Codeconcept</p>
+<script>
+  // equivalent to $(document).query()
+  // http://stackoverflow.com/questions/2304941/what-is-the-non-jquery-equivalent-of-document-ready
+  (function (exports, d) {
+    function domReady(fn, context) {
+      function onReady(event) {
+        d.removeEventListener("DOMContentLoaded", onReady);
+        fn.call(context || exports, event);
+      }
+
+      function onReadyIe(event) {
+        if (d.readyState === "complete") {
+          d.detachEvent("onreadystatechange", onReadyIe);
+          fn.call(context || exports, event);
+        }
+      }
+
+      (d.addEventListener && d.addEventListener("DOMContentLoaded", onReady)) ||
+        (d.attachEvent && d.attachEvent("onreadystatechange", onReadyIe));
+    }
+
+    exports.domReady = domReady;
+  })(window, document);
+
+  domReady(function () {
+    console.log("DOM is ready :)");
+
+    var connectionLinkArea = document.querySelector("#connectionLink");
+    testUserStatuts();
+
+    function testUserStatuts() {
+      if(localStorage.getItem("token")){
+        connectionLinkArea.innerHTML = '<a href="/login">Déconnexion</a>';
+      } else {
+        connectionLinkArea.innerHTML = '<a href="/login">Connexion</a>';
+      }
+    }
+
+
+  });
+</script>

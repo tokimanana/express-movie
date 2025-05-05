@@ -1,36 +1,67 @@
 const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
-const multer = require('multer');
+const multer = require("multer");
 const upload = multer();
+const cors = require('cors');
 
-const jwt = require('jsonwebtoken');
-const expressJwt = require('express-jwt');
+const jwt = require("jsonwebtoken");
+
+// to verify token on the request header
+const { expressjwt: expressjwt } = require("express-jwt");
 
 const PORT = 3000;
 
-let frenchMovies = [
-  { title: "Le fabuleux destin d'Amélie Poulain", year: 2001} ,
-  { title: "Buffet froid"  , year : 1979 },
-  { title: "Le diner de cons"  , year : 1998 },
-  { title: "De rouille et d'os"  , year : 2012  }
-]
+// to service static files from the public folder
+app.use("/public", express.static("public"));
 
-app.use('/public', express.static('public'));
-// app.use(bodyParser.urlencoded({ extended: false }));
+app.use(cors());
 
-const secret = 'qsdjS12ozehdoIJ123DJOZJLDSCqsdeffdg123ER56SDFZedhWXojqshduzaohduihqsDAqsdq';
-app.use(expressJwt({ secret : secret }).unless({ path: ['/login']}));
+const secret =
+  "qsdjS12ozehdoIJ123DJOZJLDSCqsdeffdg123ER56SDFZedhWXojqshduzaohduihqsDAqsdq";
+
+// check token on all pages except the ones mentioned in unless()
+app.use(
+  expressjwt({
+    secret: secret,
+    algorithms: ["HS256"],
+    credentialsRequired: true,
+    getToken: function fromHeaderOrQuerystring(req) {
+      if (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer') {
+        console.log("Token from Authorization header:", req.headers.authorization.split(' ')[1]);
+        return req.headers.authorization.split(' ')[1];
+      }
+      return null;
+    }
+  }).unless({
+    path: ["/", "/movies", "/movie-search", "/login"],
+  })
+);
+
+app.use((err, req, res, next) => {
+  console.log("Error middleware triggered:", err.name, err.message);
+  if (err.name === "UnauthorizedError") {
+    res.status(401).send("Invalid token or token not provided");
+  } else {
+    next(err);
+  }
+});
 
 app.set("views", "./views");
 app.set("view engine", "ejs");
 
+let frenchMovies = [
+  { title: "Le fabuleux destin d'Amélie Poulain", year: 2001 },
+  { title: "Buffet froid", year: 1979 },
+  { title: "Le diner de cons", year: 1998 },
+  { title: "De rouille et d'os", year: 2012 },
+];
 
-app.get('/movies', (req, res) => {
+app.get("/movies", (req, res) => {
   // res.send("Bientôt des films ici-même");
   const title = "Films français des 30 dernières années";
-  
-  res.render('movies', { movies: frenchMovies , title: title });
+
+  res.render("movies", { movies: frenchMovies, title: title });
 });
 
 var urlencoded = bodyParser.urlencoded({ extended: false });
@@ -48,28 +79,26 @@ var urlencoded = bodyParser.urlencoded({ extended: false });
 //   // console.log("l'année :", req.body.movieyear);
 // })
 
-
-app.post('/movies', upload.fields([]), (req, res) => {
-  if(!req.body) {
+app.post("/movies", upload.fields([]), (req, res) => {
+  if (!req.body) {
     return res.sendStatus(500);
   } else {
     const formData = req.body;
-    const title = req.body.movietitle ;
-    const year = req.body.movieyear  ;
-    console.log(('formData :', formData));
+    const title = req.body.movietitle;
+    const year = req.body.movieyear;
+    console.log(("formData :", formData));
     frenchMovies.push({ title, year });
     res.sendStatus(201);
   }
+});
 
-})
-
-app.get('/movies/add', (req, res) => {
+app.get("/movies/add", (req, res) => {
   res.send("créer nouveau film");
 });
 
-app.get('/movies/:id', (req, res) => {
+app.get("/movies/:id", (req, res) => {
   const id = req.params.id;
-  res.render('movie-details', { movieId: id })
+  res.render("movie-details", { movieId: id });
 });
 
 app.get("/", (req, res) => {
@@ -77,34 +106,63 @@ app.get("/", (req, res) => {
   res.render("index");
 });
 
-app.get('/movie-search', (req, res) => {
+app.get("/movie-search", (req, res) => {
   res.render("movie-search");
 });
 
-app.get('/login', (req, res) => {
-  res.render('login', { title : 'Espace membre' })
-})
+app.get("/login", (req, res) => {
+  res.render("login", { title: "Espace membre" });
+});
 
 const fakeUser = {
-  email: 'testuser@testmail.fr',
-  password : '123'
+  email: "testuser@testmail.fr",
+  password: "123",
 };
 
-
-app.post('/login', urlencoded, (req, res) => {
-  console.log('login post', req.body);
-  if(!req.body){
+app.post("/login", urlencoded, (req, res) => {
+  console.log("login post", req.body);
+  if (!req.body) {
     res.sendStatus(500);
   } else {
-    if( fakeUser.email === req.body.email && fakeUser.password === req.body.password){
-      const myToken = jwt.sign({iss: 'http://expressmovies.fr', user:'Sam', role: 'moderator'}, secret); 
+    if (
+      fakeUser.email === req.body.email &&
+      fakeUser.password === req.body.password
+    ) {
+      const payload = {
+        iss: "http://expressmovies.fr",
+        user: "Sam",
+        role: "moderator",
+      };
+      const myToken = jwt.sign(payload, secret, { algorithm: "HS256" });
+      console.log("Generated token:", myToken);
       res.json(myToken);
-
     } else {
       res.sendStatus(401);
     }
   }
-})
+});
+
+// Replace your existing /member-only route with this
+app.get("/member-only", (req, res) => {
+  const authHeader = req.headers.authorization;
+  console.log("Authorization header:", authHeader);
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).send('No token provided');
+  }
+  
+  const token = authHeader.split(' ')[1];
+  console.log("Token extracted:", token);
+  
+  try {
+    const decoded = jwt.verify(token, secret);
+    console.log("Decoded token:", decoded);
+    res.send(decoded);
+  } catch (err) {
+    console.error("Token verification error:", err);
+    res.status(401).send('Invalid token');
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`listening on port ${PORT}`);

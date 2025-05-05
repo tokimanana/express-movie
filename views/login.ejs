@@ -18,115 +18,155 @@
         </form>
       </div>
 
-      <!-- <br>
-            <div id="profile" style="display:none">
-                <button id="display-payload">voir le payload</button>
-                <button id="disconnectBtn">déconnexion</button>
-                <div id="decoded-payload"></div>
-                <div>
-                    <a href="#" id="member-only">expace membre</a>
-                    <div id="member-data"></div>
-                </div>
-            </div> -->
-
       <div id="profile" style="display: none">
         <button id="disconnectBtn">Déconnexion</button>
         <button id="display-payload">Voir le payload</button>
         <div id="decoded-payload"></div>
+        <div>
+          <a href="#" id="member-only">espace membre</a>
+        </div>
       </div>
     </div>
 
     <footer><%- include('partials/footer') %></footer>
     <script>
-      var form = document.querySelector("form");
-      form.addEventListener("submit", loginUser);
+      // DOM Elements
+      const form = document.querySelector("form");
+      const loginArea = document.querySelector("#login");
+      const profileArea = document.querySelector("#profile");
+      const displayPayloadBtn = document.querySelector("#display-payload");
+      const disconnectBtn = document.querySelector("#disconnectBtn");
+      const connectionLinkArea = document.querySelector("#connectionLink");
+      const memberOnlyLink = document.querySelector("#member-only");
 
-      var loginArea = document.querySelector("#login");
-      var profileArea = document.querySelector("#profile");
-
-      var displayPayloadBtn = document.querySelector("#display-payload");
-      displayPayloadBtn.addEventListener('click', displayPayload);
-      
-      var disconnectBtn = document.querySelector("#disconnectBtn");
+      // Event Listeners
+      form.addEventListener("submit", handleLogin);
+      displayPayloadBtn.addEventListener("click", displayPayload);
       disconnectBtn.addEventListener("click", logoutUser);
+      memberOnlyLink.addEventListener("click", makeRequestWithToken);
 
-      var connectionLinkArea = document.querySelector("#connectionLink");
-      handleFormDisplay();
+      // Initialize UI based on authentication state
+      initializeUI();
 
-      function switchToLoggedinMode() {
+      // UI Functions
+      function initializeUI() {
+        if (localStorage.getItem("token")) {
+          showLoggedInUI();
+        } else {
+          showLoggedOutUI();
+        }
+      }
+
+      function showLoggedInUI() {
         loginArea.style.display = "none";
         profileArea.style.display = "block";
         connectionLinkArea.innerHTML = '<a href="/login">Déconnexion</a>';
       }
 
-      function switchToLoggedOutMode() {
+      function showLoggedOutUI() {
         loginArea.style.display = "block";
         profileArea.style.display = "none";
         connectionLinkArea.innerHTML = '<a href="/login">Connexion</a>';
       }
 
-      function handleFormDisplay() {
-        if (localStorage.getItem("token")) {
-          switchToLoggedinMode();
-        } else {
-          switchToLoggedOutMode();
-        }
-      }
-
-      function loginUser(event) {
-        loginUserWithXHR(event);
-      }
-
-      function loginUserWithXHR(event) {
+      // Authentication Functions
+      function handleLogin(event) {
         event.preventDefault();
-        console.log("loginUserWithXHR");
+        console.log("Processing login");
 
-        // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/send
-        var xhr = new XMLHttpRequest();
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const payload = `email=${email}&password=${password}`;
+
+        const xhr = new XMLHttpRequest();
         xhr.open("POST", "/login", true);
-
-        //Send the proper header information along with the request
         xhr.setRequestHeader(
           "Content-type",
           "application/x-www-form-urlencoded"
         );
 
         xhr.onreadystatechange = function () {
-          //Call a function when the state changes.
-          if (xhr.readyState == XMLHttpRequest.DONE && xhr.status == 200) {
-            // add token to localStorage
-            var token = xhr.response;
-            localStorage.setItem("token", token);
-            switchToLoggedinMode();
-
-            form.reset();
+          if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+            handleSuccessfulLogin(xhr.response);
           }
         };
-        var email = document.getElementById("email").value;
-        var password = document.getElementById("password").value;
-        var payLoad = "email=" + email + "&" + "password=" + password;
-        xhr.send(payLoad);
+
+        xhr.send(payload);
       }
 
-      function parseJwt(){
-        var tokenFromStorage = localStorage.getItem('token');
-        if(tokenFromStorage){
-          var base64Payload = tokenFromStorage.split('.')[1];
-          return JSON.parse(window.atob(base64Payload));
-        } else {
-          return 'no token to parse';
+      function handleSuccessfulLogin(tokenResponse) {
+        console.log("Raw token received:", tokenResponse);
+
+        try {
+          // Try to parse it in case it's a JSON string
+          const parsedToken = JSON.parse(tokenResponse);
+          console.log("Parsed token:", parsedToken);
+          localStorage.setItem("token", parsedToken);
+        } catch (e) {
+          // If it's not JSON, store it directly
+          console.log("Token is not JSON, storing directly");
+          localStorage.setItem("token", tokenResponse);
         }
-      }
 
-      function displayPayload(){
-        var payload = parseJwt();
-        var decodedPayloadDiv = document.querySelector("#decoded-payload");
-        decodedPayloadDiv.innerHTML = '<pre>' + JSON.stringify(payload) + '</pre>' ;
+        console.log(
+          "Token stored in localStorage:",
+          localStorage.getItem("token")
+        );
+        showLoggedInUI();
+        form.reset();
       }
 
       function logoutUser() {
-        switchToLoggedOutMode();
         localStorage.removeItem("token");
+        showLoggedOutUI();
+      }
+
+      // JWT Functions
+      function parseJwt() {
+        const tokenFromStorage = localStorage.getItem("token");
+        if (tokenFromStorage) {
+          const base64Payload = tokenFromStorage.split(".")[1];
+          return JSON.parse(window.atob(base64Payload));
+        } else {
+          return "no token to parse";
+        }
+      }
+
+      function displayPayload() {
+        const payload = parseJwt();
+        const decodedPayloadDiv = document.querySelector("#decoded-payload");
+        decodedPayloadDiv.innerHTML = `<pre>${JSON.stringify(payload)}</pre>`;
+      }
+
+      // API Request Functions
+      function makeRequestWithToken(evt) {
+        evt.preventDefault();
+
+        const page = this.id;
+        let tokenFromStorage = localStorage.getItem("token");
+        console.log("Raw token from storage:", tokenFromStorage);
+
+        const config = {};
+
+        if (tokenFromStorage) {
+          config.headers = {
+            Authorization: `Bearer ${tokenFromStorage}`,
+          };
+        }
+
+        console.log("Token being sent:", tokenFromStorage);
+        console.log("Full Authorization header:", `Bearer ${tokenFromStorage}`);
+        console.log("Full config object:", JSON.stringify(config));
+
+        axios
+          .get(`http://localhost:3000/${page}`, config)
+          .then((res) => {
+            console.log("Success");
+            console.log(res);
+          })
+          .catch((err) => {
+            console.error("makeRequestWithToken error:", err);
+          });
       }
     </script>
   </body>

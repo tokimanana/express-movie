@@ -22,15 +22,18 @@ db.once("open", () => {
   console.log("connected to the DB");
 });
 
-const movieSchema = mongoose.Schema({
-  movieTitle: String,
-  movieYear: Number,
-});
+const movieSchema = mongoose.Schema(
+  {
+    movieTitle: String,
+    movieYear: Number,
+  },
+  { versionKey: false }
+);
 
 const Movie = mongoose.model("Movie", movieSchema);
 
-const title = "Terminator";
-const year = 1984;
+const title = faker.lorem.sentence(3);
+const year = Math.floor(Math.random() * 80) + 1950;
 
 const myMovie = new Movie({
   movieTitle: title,

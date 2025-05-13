@@ -20,26 +20,26 @@ db.once("open", () => {
 });
 
 const movieSchema = mongoose.Schema({
-  movietitle: String,
+  movieTitle: String,
   movieYear: Number,
 });
 
 const Movie = mongoose.model("Movie", movieSchema);
 
-const title = faker.lorem.sentence(3);
-const year = Math.floor(Math.random() * 80) + 1950;
+// const title = faker.lorem.sentence(3);
+// const year = Math.floor(Math.random() * 80) + 1950;
 
-const myMovie = new Movie({
-  movietitle: title,
-  movieYear: year,
-});
-myMovie.save((err, savedMovie) => {
-  if (err) {
-    console.error(err);
-  } else {
-    console.log("Saved movie : ", savedMovie);
-  }
-});
+// const myMovie = new Movie({
+//   movietitle: title,
+//   movieYear: year,
+// });
+// myMovie.save((err, savedMovie) => {
+//   if (err) {
+//     console.error(err);
+//   } else {
+//     console.log("Saved movie : ", savedMovie);
+//   }
+// });
 
 const PORT = 3000;
 
@@ -87,18 +87,28 @@ app.use((err, req, res, next) => {
 app.set("views", "./views");
 app.set("view engine", "ejs");
 
-let frenchMovies = [
-  { title: "Le fabuleux destin d'Amélie Poulain", year: 2001 },
-  { title: "Buffet froid", year: 1979 },
-  { title: "Le diner de cons", year: 1998 },
-  { title: "De rouille et d'os", year: 2012 },
-];
+// let frenchMovies = [
+//   { title: "Le fabuleux destin d'Amélie Poulain", year: 2001 },
+//   { title: "Buffet froid", year: 1979 },
+//   { title: "Le diner de cons", year: 1998 },
+//   { title: "De rouille et d'os", year: 2012 },
+// ];
 
 app.get("/movies", (req, res) => {
   // res.send("Bientôt des films ici-même");
   const title = "Films français des 30 dernières années";
 
-  res.render("movies", { movies: frenchMovies, title: title });
+  frenchMovies = [];
+  Movie.find((err, movies) => {
+    if(err){
+      console.error('could not retrieve movies from DB', err);
+      res.sendStatus(500);
+    } else {
+      frenchMovies = movies;
+      res.render("movies", { movies: frenchMovies, title: title });
+    }
+  })
+
 });
 
 var urlencoded = bodyParser.urlencoded({ extended: false });
@@ -121,11 +131,23 @@ app.post("/movies", upload.fields([]), (req, res) => {
     return res.sendStatus(500);
   } else {
     const formData = req.body;
+    // const title = req.body.movietitle;
+    // const year = req.body.movieyear;
+    // console.log(("formData :", formData));
+    // frenchMovies.push({ title, year });
+    //res.sendStatus(201);
+
     const title = req.body.movietitle;
     const year = req.body.movieyear;
-    console.log(("formData :", formData));
-    frenchMovies.push({ title, year });
-    res.sendStatus(201);
+    const myMovie = new Movie({ movieTitle: title, movieYear: year });
+    myMovie.save((err, savedMovie) => {
+      if (err) {
+        console.error(err);
+      } else {
+        console.log("Saved Movie : ", savedMovie);
+        res.sendStatus(201);
+      }
+    });
   }
 });
 

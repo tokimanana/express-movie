@@ -3,12 +3,43 @@ const app = express();
 const bodyParser = require("body-parser");
 const multer = require("multer");
 const upload = multer();
-const cors = require('cors');
+const cors = require("cors");
 
 const jwt = require("jsonwebtoken");
+const { expressjwt: expressjwt } = require("express-jwt"); // to verify token on the request header
 
-// to verify token on the request header
-const { expressjwt: expressjwt } = require("express-jwt");
+const faker = require("faker");
+
+const mongoose = require("mongoose");
+
+mongoose.connect("..."); // from the created mongodb
+const db = mongoose.connection;
+db.on("error", console.error.bind(console, "connection error"));
+db.once("open", () => {
+  console.log("connected to the DB");
+});
+
+const movieSchema = mongoose.Schema({
+  movietitle: String,
+  movieYear: Number,
+});
+
+const Movie = mongoose.model("Movie", movieSchema);
+
+const title = faker.lorem.sentence(3);
+const year = Math.floor(Math.random() * 80) + 1950;
+
+const myMovie = new Movie({
+  movietitle: title,
+  movieYear: year,
+});
+myMovie.save((err, savedMovie) => {
+  if (err) {
+    console.error(err);
+  } else {
+    console.log("Saved movie : ", savedMovie);
+  }
+});
 
 const PORT = 3000;
 
@@ -27,12 +58,18 @@ app.use(
     algorithms: ["HS256"],
     credentialsRequired: true,
     getToken: function fromHeaderOrQuerystring(req) {
-      if (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer') {
-        console.log("Token from Authorization header:", req.headers.authorization.split(' ')[1]);
-        return req.headers.authorization.split(' ')[1];
+      if (
+        req.headers.authorization &&
+        req.headers.authorization.split(" ")[0] === "Bearer"
+      ) {
+        console.log(
+          "Token from Authorization header:",
+          req.headers.authorization.split(" ")[1]
+        );
+        return req.headers.authorization.split(" ")[1];
       }
       return null;
-    }
+    },
   }).unless({
     path: ["/", "/movies", "/movie-search", "/login"],
   })
@@ -146,21 +183,21 @@ app.post("/login", urlencoded, (req, res) => {
 app.get("/member-only", (req, res) => {
   const authHeader = req.headers.authorization;
   console.log("Authorization header:", authHeader);
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).send('No token provided');
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).send("No token provided");
   }
-  
-  const token = authHeader.split(' ')[1];
+
+  const token = authHeader.split(" ")[1];
   console.log("Token extracted:", token);
-  
+
   try {
     const decoded = jwt.verify(token, secret);
     console.log("Decoded token:", decoded);
     res.send(decoded);
   } catch (err) {
     console.error("Token verification error:", err);
-    res.status(401).send('Invalid token');
+    res.status(401).send("Invalid token");
   }
 });
 

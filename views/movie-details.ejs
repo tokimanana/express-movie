@@ -1,20 +1,83 @@
 <!DOCTYPE html>
 <html lang="fr">
   <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>Express Movies</title>
-    <link rel="stylesheet" href="../public/styles.css">
+    <link rel="stylesheet" href="../public/styles.css" />
   </head>
 
   <body>
     <%- include('partials/header') %>
-    
-    <h1>Détails </h1>
+
+    <h1>Détails</h1>
+    <div>N° <%= movieId %></div>
+
     <div>
-      N° <%= movieId %>
+      <h2>Modifier le film</h2>
+      <form id="updateMovieForm">
+        <label for="movietitle">Titre du film</label>
+        <input type="text" name="movietitle" id="movietitle" />
+        <label for="movieyear">Année du film</label>
+        <input type="text" name="movieyear" id="movieyear" />
+        <button type="submit">Mettre à jour</button>
+      </form>
     </div>
+
+    <div id="updateResult"></div>
 
     <%- include('partials/footer') %>
 
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+      const form = document.getElementById("updateMovieForm");
+      form.addEventListener("submit", updateMovie);
+
+      // Fetch movie data when page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        const movieId = "<%= movieId %>";
+        fetch(`/movie-details/${movieId}`, {
+          headers: {
+            Accept: "application/json",
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data && data.movie) {
+              document.getElementById("movietitle").value =
+                data.movie.movieTitle || "";
+              document.getElementById("movieyear").value =
+                data.movie.movieYear || "";
+            }
+          })
+          .catch((error) => console.error("Error fetching movie data:", error));
+      });
+
+      function updateMovie(event) {
+        event.preventDefault();
+
+        const movieId = "<%= movieId %>";
+        const title = document.getElementById("movietitle").value;
+        const year = document.getElementById("movieyear").value;
+
+        // Create FormData for multipart/form-data support
+        const formData = new FormData();
+        formData.append("movietitle", title);
+        formData.append("movieyear", year);
+
+        // Use axios for simpler data handling
+        axios
+          .put(`/movie-details/${movieId}`, formData)
+          .then((response) => {
+            document.getElementById(
+              "updateResult"
+            ).innerHTML = `<p>Film mis à jour: ${response.data.movie.movieTitle} - ${response.data.movie.movieYear}</p>`;
+          })
+          .catch((error) => {
+            console.error("Error updating movie:", error);
+            document.getElementById("updateResult").innerHTML =
+              "<p>Erreur lors de la mise à jour du film</p>";
+          });
+      }
+    </script>
   </body>
 </html>

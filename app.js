@@ -4,54 +4,22 @@ const bodyParser = require("body-parser");
 const multer = require("multer");
 const upload = multer();
 const cors = require("cors");
-
-const jwt = require("jsonwebtoken");
 const { expressjwt: expressjwt } = require("express-jwt");
-
-const faker = require("faker");
 const config = require("./config");
+const movieController = require("./controllers/movieController");
+const authController = require('./controllers/authController');
 
 const mongoose = require("mongoose");
 
-// First define the schema
-const movieSchema = mongoose.Schema(
-  {
-    movieTitle: String,
-    movieYear: Number,
-  },
-  { versionKey: false }
-);
-
-// Then create the model
-const Movie = mongoose.model("Movie", movieSchema);
-
 // Connect to MongoDB
 mongoose.connect(
-  `mongodb+srv://tokimananasarobidy:JesosyFamonjena.@expressmovie.tsqqcvd.mongodb.net/`
+  `mongodb+srv://${config.user}:${config.password}.@expressmovie.tsqqcvd.mongodb.net/`
 );
 
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "MongoDB connection error:"));
 db.once("open", () => {
   console.log("Connected to MongoDB");
-
-  // Only create and save the movie after successful connection
-  // const title = faker.lorem.sentence(3);
-  // const year = Math.floor(Math.random() * 80) + 1950;
-
-  // const myMovie = new Movie({
-  //   movieTitle: title,
-  //   movieYear: year,
-  // });
-
-  // myMovie
-  //   .save()
-  //   .then((savedMovie) => {
-  //     console.log("Saved movie:", savedMovie);
-  //   })
-  //   .catch((err) => {
-  //     console.error("Error saving movie:", err);
-  //   });
 });
 
 const PORT = 3000;
@@ -63,8 +31,7 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-const secret =
-  "qsdjS12ozehdoIJ123DJOZJLDSCqsdeffdg123ER56SDFZedhWXojqshduzaohduihqsDAqsdq";
+
 
 // check token on all pages except the ones mentioned in unless()
 app.use(
@@ -97,6 +64,11 @@ app.use(
   })
 );
 
+app.get("/", (req, res) => {
+  res.render("index");
+});
+
+
 app.use((err, req, res, next) => {
   console.log("Error middleware triggered:", err.name, err.message);
   if (err.name === "UnauthorizedError") {
@@ -109,252 +81,31 @@ app.use((err, req, res, next) => {
 app.set("views", "./views");
 app.set("view engine", "ejs");
 
-app.get("/movies", async (req, res) => {
-  const title = "Films français des 30 dernières années";
-
-  try {
-    const movies = await Movie.find();
-    res.render("movies", { movies: movies, title: title });
-  } catch (err) {
-    console.error("could not retrieve movies from DB", err);
-    res.sendStatus(500);
-  }
-});
+app.get("/movies", movieController.getMovies);
 
 var urlencoded = bodyParser.urlencoded({ extended: false });
 
-app.post("/movies", upload.fields([]), (req, res) => {
-  if (!req.body) {
-    return res.sendStatus(500);
-  } else {
-    const formData = req.body;
-    const title = req.body.movietitle;
-    const year = req.body.movieyear;
-    const myMovie = new Movie({ movieTitle: title, movieYear: year });
-    myMovie
-      .save()
-      .then((savedMovie) => {
-        console.log("Saved Movie : ", savedMovie);
-        // Return the saved movie data with status 201 instead of just status code
-        res.status(201).json(savedMovie);
-      })
-      .catch((err) => {
-        console.error(err);
-        res.status(500).json({ error: "Failed to save movie" });
-      });
-  }
-});
+app.post("/movies", upload.fields([]), movieController.postMovie);
 
-app.get("/movies/add", (req, res) => {
-  res.send("créer nouveau film");
-});
+app.get("/movies/add", movieController.getMoviesAdd);
 
-app.get("/movies/:id", (req, res) => {
-  const id = req.params.id;
-  res.render("movie-details", { movieId: id });
-});
+app.get("/movies/:id", movieController.getMovieById);
 
-app.get("/movie-details/:id", async (req, res) => {
-  const id = req.params.id;
-  try {
-    const movie = await Movie.findById(id);
-    console.log("movie ", movie);
+app.get('/movie-details/:id', movieController.getMovieDetails);
 
-    // Check if the request wants JSON (for API) or HTML (for browser)
-    const acceptHeader = req.headers.accept || "";
-    if (acceptHeader.includes("application/json")) {
-      return res.json({ movie: movie });
-    }
+app.post('/movie-details/:id',  urlencodedParser, movieController.postMovieDetails);
 
-    res.render("movie-details", { movieId: movie._id });
-  } catch (err) {
-    console.error("Error finding movie:", err);
-    res.status(404).send("Movie not found");
-  }
-});
+app.put("/movie-details/:id", upload.fields([]), movieController.putMovieDetails);
 
-// Keep the PUT endpoint for API compatibility
-app.put("/movie-details/:id", upload.fields([]), async (req, res) => {
-  const id = req.params.id;
-  if (!req.body) {
-    return res.status(400).send("Request body is missing");
-  }
+app.delete("/movie-details/:id", upload.fields([]), movieController.deleteMovie);
 
-  // Extract data from multipart/form-data request
-  const movieTitle = req.body.movietitle;
-  const movieYear = req.body.movieyear;
+app.get('/movie-search', movieController.movieSearch);
 
-  // Validate inputs
-  if (!movieTitle && !movieYear) {
-    return res.status(400).send("Both movie title and year are missing");
-  }
+app.get('/login', authController.login);
 
-  // Build update object with only provided fields
-  const updateObj = {};
-  if (movieTitle) updateObj.movieTitle = movieTitle;
-  if (movieYear) updateObj.movieYear = parseInt(movieYear, 10) || movieYear;
+app.post("/login", urlencoded, authController.postLogin);
 
-  try {
-    const movie = await Movie.findByIdAndUpdate(
-      id,
-      { $set: updateObj },
-      { new: true }
-    );
-
-    if (!movie) {
-      return res.status(404).send("Film non trouvé");
-    }
-
-    res.json({
-      success: true,
-      message: "Film mis à jour avec succès",
-      movie: movie,
-    });
-  } catch (err) {
-    console.log("Error updating movie:", err);
-    res.status(500).send("Le film n'a pas pu être mis à jour");
-  }
-});
-
-// Add POST endpoint for form submissions
-app.post("/movie-details/:id", upload.fields([]), async (req, res) => {
-  const id = req.params.id;
-  if (!req.body) {
-    return res.render("movie-details", {
-      movieId: id,
-      error: "Request body is missing",
-    });
-  }
-
-  // Extract data from form submission
-  const movieTitle = req.body.movietitle;
-  const movieYear = req.body.movieyear;
-
-  // Validate inputs
-  if (!movieTitle && !movieYear) {
-    return res.render("movie-details", {
-      movieId: id,
-      error: "Both movie title and year are missing",
-    });
-  }
-
-  // Build update object with only provided fields
-  const updateObj = {};
-  if (movieTitle) updateObj.movieTitle = movieTitle;
-  if (movieYear) updateObj.movieYear = parseInt(movieYear, 10) || movieYear;
-
-  try {
-    const movie = await Movie.findByIdAndUpdate(
-      id,
-      { $set: updateObj },
-      { new: true }
-    );
-
-    if (!movie) {
-      return res.render("movie-details", {
-        movieId: id,
-        error: "Film non trouvé",
-      });
-    }
-
-    // Redirect to movies list page after successful update
-    res.redirect("/movies");
-  } catch (err) {
-    console.log("Error updating movie:", err);
-    res.render("movie-details", {
-      movieId: id,
-      error: "Le film n'a pas pu être mis à jour",
-    });
-  }
-});
-
-app.delete("/movie-details/:id", upload.fields([]), async (req, res) => {
-  const id = req.params.id;
-  if (!req.body) {
-    return res.render("movie-details", {
-      movieId: id,
-      error: "Request body is missing",
-    });
-  }
-
-  try {
-    const movie = await Movie.findByIdAndDelete(id);
-
-    if (!movie) {
-      return res.status(404).json({ error: "Film non trouvé" });
-    }
-
-    // Return success response
-    return res.status(202).json({
-      success: true,
-      message: "Film supprimé avec succès",
-    });
-  } catch (err) {
-    console.error("Error deleting movie:", err);
-    return res.status(500).json({ error: "Le film n'a pas pu être supprimé" });
-  }
-});
-
-app.get("/", (req, res) => {
-  res.render("index");
-});
-
-app.get("/movie-search", (req, res) => {
-  res.render("movie-search");
-});
-
-app.get("/login", (req, res) => {
-  res.render("login", { title: "Espace membre" });
-});
-
-const fakeUser = {
-  email: "testuser@testmail.fr",
-  password: "123",
-};
-
-app.post("/login", urlencoded, (req, res) => {
-  console.log("login post", req.body);
-  if (!req.body) {
-    res.sendStatus(500);
-  } else {
-    if (
-      fakeUser.email === req.body.email &&
-      fakeUser.password === req.body.password
-    ) {
-      const payload = {
-        iss: "http://expressmovies.fr",
-        user: "Sam",
-        role: "moderator",
-      };
-      const myToken = jwt.sign(payload, secret, { algorithm: "HS256" });
-      console.log("Generated token:", myToken);
-      res.json(myToken);
-    } else {
-      res.sendStatus(401);
-    }
-  }
-});
-
-app.get("/member-only", (req, res) => {
-  const authHeader = req.headers.authorization;
-  console.log("Authorization header:", authHeader);
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).send("No token provided");
-  }
-
-  const token = authHeader.split(" ")[1];
-  console.log("Token extracted:", token);
-
-  try {
-    const decoded = jwt.verify(token, secret);
-    console.log("Decoded token:", decoded);
-    res.send(decoded);
-  } catch (err) {
-    console.error("Token verification error:", err);
-    res.status(401).send("Invalid token");
-  }
-});
+app.get('/member-only', authController.getMemberOnly);
 
 app.listen(PORT, () => {
   console.log(`listening on port ${PORT}`);

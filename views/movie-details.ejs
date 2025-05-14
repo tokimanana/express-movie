@@ -14,24 +14,32 @@
 
     <div>
       <h2>Modifier le film</h2>
-      <form id="updateMovieForm">
+      <form action="/movie-details/<%= movieId %>" method="POST">
         <label for="movietitle">Titre du film</label>
         <input type="text" name="movietitle" id="movietitle" />
         <label for="movieyear">Année du film</label>
         <input type="text" name="movieyear" id="movieyear" />
         <button type="submit">Mettre à jour</button>
       </form>
+      <button
+        id="deleteMovie"
+        style="margin-top: 10px;"
+      >
+        Supprimer le film
+      </button>
     </div>
 
-    <div id="updateResult"></div>
+    <!-- <div id="updateResult">
+      <% if(locals.message) { %>
+      <p><%= message %></p>
+      <% } %> <% if(locals.error) { %>
+      <p style="color: red"><%= error %></p>
+      <% } %>
+    </div> -->
 
     <%- include('partials/footer') %>
 
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script>
-      const form = document.getElementById("updateMovieForm");
-      form.addEventListener("submit", updateMovie);
-
       // Fetch movie data when page loads
       document.addEventListener("DOMContentLoaded", function () {
         const movieId = "<%= movieId %>";
@@ -50,34 +58,38 @@
             }
           })
           .catch((error) => console.error("Error fetching movie data:", error));
-      });
 
-      function updateMovie(event) {
-        event.preventDefault();
-
-        const movieId = "<%= movieId %>";
-        const title = document.getElementById("movietitle").value;
-        const year = document.getElementById("movieyear").value;
-
-        // Create FormData for multipart/form-data support
-        const formData = new FormData();
-        formData.append("movietitle", title);
-        formData.append("movieyear", year);
-
-        // Use axios for simpler data handling
-        axios
-          .put(`/movie-details/${movieId}`, formData)
-          .then((response) => {
-            document.getElementById(
-              "updateResult"
-            ).innerHTML = `<p>Film mis à jour: ${response.data.movie.movieTitle} - ${response.data.movie.movieYear}</p>`;
-          })
-          .catch((error) => {
-            console.error("Error updating movie:", error);
-            document.getElementById("updateResult").innerHTML =
-              "<p>Erreur lors de la mise à jour du film</p>";
+        // Handle delete button click
+        document
+          .getElementById("deleteMovie")
+          .addEventListener("click", function () {
+            if (confirm("Êtes-vous sûr de vouloir supprimer ce film ?")) {
+              fetch(`/movie-details/${movieId}`, {
+                method: "DELETE",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({}),
+              })
+                .then((response) => response.json())
+                .then((data) => {
+                  if (data.success) {
+                    alert(data.message);
+                    window.location.href = "/movies";
+                  } else {
+                    alert(
+                      data.error ||
+                        "Une erreur est survenue lors de la suppression"
+                    );
+                  }
+                })
+                .catch((error) => {
+                  console.error("Error deleting movie:", error);
+                  alert("Une erreur est survenue lors de la suppression");
+                });
+            }
           });
-      }
+      });
     </script>
   </body>
 </html>

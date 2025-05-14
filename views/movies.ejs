@@ -15,7 +15,7 @@
       <div class="french-movies">
         <% for(let movie of movies) { %>
             <div>
-              <%= movie.movieTitle %> - <%= movie.movieYear %>
+              <a href="/movie-details/<%= movie._id %>"><%= movie.movieTitle %> - <%= movie.movieYear %></a>
             </div>
         <% } %>
       </div>
@@ -54,17 +54,34 @@
 
       function checkStatus(response) {
         if(response.status >= 200 || response.status < 300 ) {
-          let newMovieDiv = document.createElement('div');
-
+          // Get the movie data from the form
           const movietitle = document.getElementById('movietitle').value;
           const movieyear = document.getElementById('movieyear').value;
-
-          newMovieDiv.innerHTML = `${movietitle} - ${movieyear}`;
-          // newMovieDiv.innerHTML = movietitle + ' ' + '(' + movieyear + ')';
-
-          document.querySelector('.french-movies').appendChild(newMovieDiv);
-
-          form.reset();
+          
+          // Create a new div for the movie
+          let newMovieDiv = document.createElement('div');
+          
+          // Get the movie ID from the response if available
+          response.json().then(data => {
+            // If we have the movie ID, make it a clickable link
+            if(data && data._id) {
+              newMovieDiv.innerHTML = `<a href="/movie-details/${data._id}">${movietitle} - ${movieyear}</a>`;
+            } else {
+              // Otherwise just display the text
+              newMovieDiv.innerHTML = `${movietitle} - ${movieyear}`;
+            }
+            
+            // Add the new movie to the list
+            document.querySelector('.french-movies').appendChild(newMovieDiv);
+            
+            // Reset the form
+            form.reset();
+          }).catch(error => {
+            // If we can't parse the response as JSON, just add the movie as text
+            newMovieDiv.innerHTML = `${movietitle} - ${movieyear}`;
+            document.querySelector('.french-movies').appendChild(newMovieDiv);
+            form.reset();
+          });
         }
       }
     </script>

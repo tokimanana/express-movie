@@ -135,10 +135,12 @@ app.post("/movies", upload.fields([]), (req, res) => {
       .save()
       .then((savedMovie) => {
         console.log("Saved Movie : ", savedMovie);
-        res.sendStatus(201);
+        // Return the saved movie data with status 201 instead of just status code
+        res.status(201).json(savedMovie);
       })
       .catch((err) => {
         console.error(err);
+        res.status(500).json({ error: "Failed to save movie" });
       });
   }
 });
@@ -171,24 +173,16 @@ app.get("/movie-details/:id", async (req, res) => {
   }
 });
 
+// Keep the PUT endpoint for API compatibility
 app.put("/movie-details/:id", upload.fields([]), async (req, res) => {
   const id = req.params.id;
   if (!req.body) {
     return res.status(400).send("Request body is missing");
   }
 
-  // Log detailed request information for debugging
-  console.log("Request headers:", req.headers);
-  console.log("Content-Type:", req.headers["content-type"]);
-  console.log("Request body:", req.body);
-  console.log("Request body type:", typeof req.body);
-  console.log("Request body keys:", Object.keys(req.body));
-
   // Extract data from multipart/form-data request
   const movieTitle = req.body.movietitle;
   const movieYear = req.body.movieyear;
-
-  console.log("movietitle:", movieTitle, "movieyear:", movieYear);
 
   // Validate inputs
   if (!movieTitle && !movieYear) {
@@ -216,10 +210,88 @@ app.put("/movie-details/:id", upload.fields([]), async (req, res) => {
       message: "Film mis à jour avec succès",
       movie: movie,
     });
-    res.redirect('/movies');
   } catch (err) {
     console.log("Error updating movie:", err);
     res.status(500).send("Le film n'a pas pu être mis à jour");
+  }
+});
+
+// Add POST endpoint for form submissions
+app.post("/movie-details/:id", upload.fields([]), async (req, res) => {
+  const id = req.params.id;
+  if (!req.body) {
+    return res.render("movie-details", {
+      movieId: id,
+      error: "Request body is missing",
+    });
+  }
+
+  // Extract data from form submission
+  const movieTitle = req.body.movietitle;
+  const movieYear = req.body.movieyear;
+
+  // Validate inputs
+  if (!movieTitle && !movieYear) {
+    return res.render("movie-details", {
+      movieId: id,
+      error: "Both movie title and year are missing",
+    });
+  }
+
+  // Build update object with only provided fields
+  const updateObj = {};
+  if (movieTitle) updateObj.movieTitle = movieTitle;
+  if (movieYear) updateObj.movieYear = parseInt(movieYear, 10) || movieYear;
+
+  try {
+    const movie = await Movie.findByIdAndUpdate(
+      id,
+      { $set: updateObj },
+      { new: true }
+    );
+
+    if (!movie) {
+      return res.render("movie-details", {
+        movieId: id,
+        error: "Film non trouvé",
+      });
+    }
+
+    // Redirect to movies list page after successful update
+    res.redirect("/movies");
+  } catch (err) {
+    console.log("Error updating movie:", err);
+    res.render("movie-details", {
+      movieId: id,
+      error: "Le film n'a pas pu être mis à jour",
+    });
+  }
+});
+
+app.delete("/movie-details/:id", upload.fields([]), async (req, res) => {
+  const id = req.params.id;
+  if (!req.body) {
+    return res.render("movie-details", {
+      movieId: id,
+      error: "Request body is missing",
+    });
+  }
+
+  try {
+    const movie = await Movie.findByIdAndDelete(id);
+
+    if (!movie) {
+      return res.status(404).json({ error: "Film non trouvé" });
+    }
+
+    // Return success response
+    return res.status(202).json({
+      success: true,
+      message: "Film supprimé avec succès",
+    });
+  } catch (err) {
+    console.error("Error deleting movie:", err);
+    return res.status(500).json({ error: "Le film n'a pas pu être supprimé" });
   }
 });
 

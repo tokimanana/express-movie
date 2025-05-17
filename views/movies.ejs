@@ -1,87 +1,93 @@
 <!DOCTYPE html>
 <html lang="fr">
   <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>Express Movies</title>
-    <link rel="stylesheet" href="../public/styles.css">
+    <link rel="stylesheet" href="../public/styles.css" />
   </head>
 
   <body>
     <div class="central">
       <%- include('partials/header') %>
-  
+
       <h1><%- title %></h1>
-      
+
       <div class="french-movies">
         <% for(let movie of movies) { %>
-            <div>
-              <a href="/movie-details/<%= movie._id %>"><%= movie.movieTitle %> - <%= movie.movieYear %></a>
-            </div>
+        <div>
+          <a href="/movie-details/<%= movie._id %>"
+            ><%= movie.movieTitle %> - <%= movie.movieYear %></a
+          >
+        </div>
         <% } %>
       </div>
-      <br>
+      <br />
       <div>
         <form action="/movies" method="POST">
           <label for="movietitle">Titre du film</label>
-          <input type="text" name="movietitle" id="movietitle">
+          <input type="text" name="movietitle" id="movietitle" />
           <label for="movieyear"> Année du film</label>
-          <input type="text" name="movieyear" id="movieyear">
+          <input type="text" name="movieyear" id="movieyear" />
           <button type="submit">Ajouter</button>
         </form>
       </div>
-  
     </div>
     <%- include('partials/footer') %>
 
     <script>
-      const form = document.querySelector('form');
-      form.addEventListener('submit', addMovie);
+      const form = document.querySelector("form");
+      form.addEventListener("submit", addMovie);
 
       function addMovie(event) {
-        event.preventDefault();
+        event.preventDefault(); //éviter de poster la page, genre ne pas afficher created ou quelque soit
 
-        if(fetch){
-          fetch('/movies', {
-            method: 'POST',
-            body: new FormData(form)
+        if (fetch) {
+          fetch("/movies", {
+            method: "POST",
+            body: new FormData(form),
           })
-          .then(checkStatus)
-          .catch(function(error) {console.error('request failed', error)})
+            .then(checkStatus)
+            .catch(function (error) {
+              console.error("request failed", error);
+            });
         } else {
           //jQuery, XHR
         }
       }
 
       function checkStatus(response) {
-        if(response.status >= 200 || response.status < 300 ) {
+        if (response.status >= 200 || response.status < 300) {
           // Get the movie data from the form
-          const movietitle = document.getElementById('movietitle').value;
-          const movieyear = document.getElementById('movieyear').value;
-          
+          const movietitle = document.getElementById("movietitle").value;
+          const movieyear = document.getElementById("movieyear").value;
+
           // Create a new div for the movie
-          let newMovieDiv = document.createElement('div');
-          
+          let newMovieDiv = document.createElement("div");
+
           // Get the movie ID from the response if available
-          response.json().then(data => {
-            // If we have the movie ID, make it a clickable link
-            if(data && data._id) {
-              newMovieDiv.innerHTML = `<a href="/movie-details/${data._id}">${movietitle} - ${movieyear}</a>`;
-            } else {
-              // Otherwise just display the text
+          response
+            .json()
+            .then((data) => {
+              // If we have the movie ID, make it a clickable link
+              if (data && data._id) {
+                newMovieDiv.innerHTML = `<a href="/movie-details/${data._id}">${movietitle} - ${movieyear}</a>`;
+              } else {
+                // Otherwise just display the text
+                newMovieDiv.innerHTML = `${movietitle} - ${movieyear}`;
+              }
+
+              // Add the new movie to the list
+              document.querySelector(".french-movies").appendChild(newMovieDiv);
+
+              // Reset the form
+              form.reset();
+            })
+            .catch((error) => {
+              // If we can't parse the response as JSON, just add the movie as text
               newMovieDiv.innerHTML = `${movietitle} - ${movieyear}`;
-            }
-            
-            // Add the new movie to the list
-            document.querySelector('.french-movies').appendChild(newMovieDiv);
-            
-            // Reset the form
-            form.reset();
-          }).catch(error => {
-            // If we can't parse the response as JSON, just add the movie as text
-            newMovieDiv.innerHTML = `${movietitle} - ${movieyear}`;
-            document.querySelector('.french-movies').appendChild(newMovieDiv);
-            form.reset();
-          });
+              document.querySelector(".french-movies").appendChild(newMovieDiv);
+              form.reset();
+            });
         }
       }
     </script>

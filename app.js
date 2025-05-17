@@ -36,7 +36,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // check token on all pages except the ones mentioned in unless()
 app.use(
   expressjwt({
-    secret: secret,
+    secret: config.secret,
     algorithms: ["HS256"],
     credentialsRequired: true,
     getToken: function fromHeaderOrQuerystring(req) {
@@ -93,7 +93,7 @@ app.get("/movies/:id", movieController.getMovieById);
 
 app.get('/movie-details/:id', movieController.getMovieDetails);
 
-app.post('/movie-details/:id',  urlencodedParser, movieController.postMovieDetails);
+app.post('/movie-details/:id', urlencoded, movieController.postMovieDetails);
 
 app.put("/movie-details/:id", upload.fields([]), movieController.putMovieDetails);
 

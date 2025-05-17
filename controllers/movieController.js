@@ -18,7 +18,7 @@ const postMovie = async (req, res) => {
       movieYear: movieyear,
     });
     await newMovie.save();
-    res.redirect("/movies");
+    res.json({ _id: newMovie._id });
   } catch (err) {
     console.error(err);
     res.status(500).send("Server Error");
@@ -42,7 +42,16 @@ const getMovieById = async (req, res) => {
 const getMovieDetails = async (req, res) => {
   try {
     const movie = await Movie.findById(req.params.id);
-    res.render("movie-details", { movieId: req.params.id });
+
+    if (req.headers.accept.includes("application/json")) {
+      return res.json(movie);
+    }
+
+    res.render("movie-details", {
+      movieId: movie.id,
+      movieTitle: movie.movieTitle,
+      movieYear: movie.movieYear,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).send("Server Error");
@@ -56,7 +65,7 @@ const postMovieDetails = async (req, res) => {
       movieTitle: movietitle,
       movieYear: movieyear,
     });
-    res.redirect(`/movie-details/${req.params.id}`);
+    res.redirect("/movies");
   } catch (err) {
     console.error(err);
     res.status(500).send("Server Error");
@@ -88,7 +97,7 @@ const deleteMovie = async (req, res) => {
 };
 
 const movieSearch = (req, res) => {
-    res.render('movie-search');
+  res.render("movie-search");
 };
 
 module.exports = {
@@ -100,5 +109,5 @@ module.exports = {
   postMovieDetails,
   putMovieDetails,
   deleteMovie,
-  movieSearch
+  movieSearch,
 };

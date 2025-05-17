@@ -16,9 +16,9 @@
       <h2>Modifier le film</h2>
       <form action="/movie-details/<%= movieId %>" method="POST">
         <label for="movietitle">Titre du film</label>
-        <input type="text" name="movietitle" id="movietitle" />
+        <input type="text" name="movietitle" id="movietitle" value="<%= movieTitle %>" />
         <label for="movieyear">Année du film</label>
-        <input type="text" name="movieyear" id="movieyear" />
+        <input type="text" name="movieyear" id="movieyear" value="<%= movieYear %>" />
         <button type="submit">Mettre à jour</button>
       </form>
       <button

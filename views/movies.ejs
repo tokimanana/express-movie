@@ -1,95 +1,102 @@
-<!DOCTYPE html>
-<html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Express Movies</title>
-    <link rel="stylesheet" href="../public/styles.css" />
-  </head>
+<%- include('partials/head') %> <%- include('partials/header') %>
 
-  <body>
-    <div class="central">
-      <%- include('partials/header') %>
-
-      <h1><%- title %></h1>
-
-      <div class="french-movies">
-        <% for(let movie of movies) { %>
-        <div>
-          <a href="/movie-details/<%= movie._id %>"
-            ><%= movie.movieTitle %> - <%= movie.movieYear %></a
-          >
-        </div>
-        <% } %>
+<main class="container">
+  <!-- Section Ajout de film -->
+  <section class="add-movie-section">
+    <h2>Ajouter un nouveau film</h2>
+    <form action="/movies" method="POST" class="movie-form inline-form">
+      <div class="form-group inline">
+        <label for="title">Titre</label>
+        <input
+          type="text"
+          id="title"
+          name="title"
+          class="form-control"
+          required
+        />
       </div>
-      <br />
-      <div>
-        <form action="/movies" method="POST">
-          <label for="movietitle">Titre du film</label>
-          <input type="text" name="movietitle" id="movietitle" />
-          <label for="movieyear"> Année du film</label>
-          <input type="text" name="movieyear" id="movieyear" />
-          <button type="submit">Ajouter</button>
-        </form>
+
+      <div class="form-group inline">
+        <label for="year">Année</label>
+        <input
+          type="number"
+          id="year"
+          name="year"
+          class="form-control"
+          required
+        />
       </div>
-    </div>
-    <%- include('partials/footer') %>
 
-    <script>
-      const form = document.querySelector("form");
-      form.addEventListener("submit", addMovie);
+      <button type="submit" class="btn btn-primary inline-btn">Ajouter</button>
+    </form>
+  </section>
 
-      function addMovie(event) {
-        event.preventDefault(); //éviter de poster la page, genre ne pas afficher created ou quelque soit
+  <!-- Section Liste des films -->
+  <section class="movie-list-section">
+    <h2>Liste des films</h2>
+    <table class="movie-table">
+      <thead>
+        <tr>
+          <th>Titre</th>
+          <th>Année</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% movies.forEach(movie => { %>
+        <tr>
+          <td><%= movie.movieTitle %></td>
+          <td><%= movie.movieYear %></td>
+          <td class="actions">
+            <form
+              action="/movie-details/<%= movie._id %>"
+              method="GET"
+              class="inline-form"
+            >
+              <button type="submit" class="btn btn-edit">Modifier</button>
+            </form>
+            <form class="inline-form">
+              <button
+                class="btn btn-delete delete-movie"
+                data-movie-id="<%= movie._id %>"
+              >
+                Supprimer
+              </button>
+            </form>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </section>
+</main>
 
-        if (fetch) {
-          fetch("/movies", {
-            method: "POST",
-            body: new FormData(form),
+<%- include('partials/footer') %>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".delete-movie").forEach((button) => {
+      button.addEventListener("click", function () {
+        const movieId = this.getAttribute("data-movie-id");
+
+        if (confirm("Êtes-vous sûr de vouloir supprimer ce film ?")) {
+          fetch(`/movies/${movieId}`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
           })
-            .then(checkStatus)
-            .catch(function (error) {
-              console.error("request failed", error);
-            });
-        } else {
-          //jQuery, XHR
-        }
-      }
-
-      function checkStatus(response) {
-        if (response.status >= 200 || response.status < 300) {
-          // Get the movie data from the form
-          const movietitle = document.getElementById("movietitle").value;
-          const movieyear = document.getElementById("movieyear").value;
-
-          // Create a new div for the movie
-          let newMovieDiv = document.createElement("div");
-
-          // Get the movie ID from the response if available
-          response
-            .json()
-            .then((data) => {
-              // If we have the movie ID, make it a clickable link
-              if (data && data._id) {
-                newMovieDiv.innerHTML = `<a href="/movie-details/${data._id}">${movietitle} - ${movieyear}</a>`;
+            .then((response) => {
+              if (response.ok) {
+                window.location.reload();
               } else {
-                // Otherwise just display the text
-                newMovieDiv.innerHTML = `${movietitle} - ${movieyear}`;
+                alert("Une erreur est survenue lors de la suppression");
               }
-
-              // Add the new movie to the list
-              document.querySelector(".french-movies").appendChild(newMovieDiv);
-
-              // Reset the form
-              form.reset();
             })
             .catch((error) => {
-              // If we can't parse the response as JSON, just add the movie as text
-              newMovieDiv.innerHTML = `${movietitle} - ${movieyear}`;
-              document.querySelector(".french-movies").appendChild(newMovieDiv);
-              form.reset();
+              console.error("Error:", error);
+              alert("Une erreur est survenue lors de la suppression");
             });
         }
-      }
-    </script>
-  </body>
-</html>
+      });
+    });
+  });
+</script>

@@ -60,13 +60,14 @@
       function showLoggedInUI() {
         loginArea.style.display = "none";
         profileArea.style.display = "block";
-        connectionLinkArea.innerHTML = '<a href="/login">Déconnexion</a>';
+        connectionLinkArea.innerHTML =
+          '<a href="/login" class="nav-link" style="color: white !important; text-decoration: none !important;">Déconnexion</a>';
       }
 
       function showLoggedOutUI() {
         loginArea.style.display = "block";
         profileArea.style.display = "none";
-        connectionLinkArea.innerHTML = '<a href="/login">Connexion</a>';
+        connectionLinkArea.innerHTML = '<a href="/login" class="nav-link" style="color: white !important; text-decoration: none !important;">Connexion</a>';
       }
 
       // Authentication Functions

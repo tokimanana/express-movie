@@ -43,7 +43,7 @@ const getMovieDetails = async (req, res) => {
   try {
     const movie = await Movie.findById(req.params.id);
 
-    if (req.headers.accept.includes("application/json")) {
+    if (req.headers.accept && req.headers.accept.includes("application/json")) {
       return res.json(movie);
     }
 
